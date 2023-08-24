@@ -10,19 +10,18 @@ Contents:
 - TicketViewSet: A viewset managing ticket-related operations.
   - Allows creation and retrieval of tickets with proper permissions.
   - Custom methods to perform ticket creation and updating.
-  
+
 Note: This module is part of the ebs_app package and should be imported accordingly.
 """
 
 from rest_framework import viewsets, permissions
 from ebs_app.models.tickets import Ticket
 from ebs_app.models.events import Event
-from users.event_organiser.models import EventOrganiser
 from users.permissions import IsEventOrganiser
 from ebs_app.exceptions import NoEventAPIException
 
 from ebs_app.serializers.ticket_serializers import TicketSerializer
-from ebs_app.exceptions import NoEventOrganiserAPIException
+
 
 class TicketViewSet(viewsets.ModelViewSet):
     """
@@ -45,8 +44,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
-    
-    
+
     def get_permissions(self):
         """
         Get the list of permission classes based on the action.
@@ -59,7 +57,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             list: A list of permission classes based on the action.
         """
 
-        if self.action in ['create', 'update', 'partial_update', 'delete']:
+        if self.action in ["create", "update", "partial_update", "delete"]:
             permission_classes = [permissions.IsAuthenticated, IsEventOrganiser]
         else:
             permission_classes = [permissions.IsAuthenticated]
@@ -75,7 +73,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 
         Args:
             serializer: The serializer instance used to validate and create the object.
-            
+
         Payload Structure:
             {
                 "event": 1,                   # ID of the associated event
@@ -92,13 +90,15 @@ class TicketViewSet(viewsets.ModelViewSet):
             The result of the superclass's perform_create method.
         """
 
-        event = Event.objects.get(
-            id=self.request.data.get("event")
-            ) if "event" in self.request.data else None
+        event = (
+            Event.objects.get(id=self.request.data.get("event"))
+            if "event" in self.request.data
+            else None
+        )
 
         if event is None:
             raise NoEventAPIException()
-        
+
         if serializer.is_valid(raise_exception=True):
             serializer.save(
                 event=event,

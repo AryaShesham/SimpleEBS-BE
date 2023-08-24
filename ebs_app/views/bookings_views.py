@@ -12,11 +12,11 @@ Contents:
   - Allows creation and retrieval of bookings with proper permissions.
   - Retrieves booking data based on user roles.
   - Custom methods to perform booking creation and retrieve filtered queries.
-  
+
 - CancelBooking: A custom view for cancelling bookings.
   - Allows cancellation of bookings by customers.
   - Updates booking status and ticket availability accordingly.
-  
+
 Note: This module is part of the ebs_app package and should be imported accordingly.
 """
 
@@ -30,12 +30,15 @@ from users.event_organiser.models import EventOrganiser
 from users.permissions import IsCustomer
 from ebs_app.serializers.booking_serializers import BookingSerializer
 from ebs_app.tasks import send_booking_confirmation_email
-from ebs_app.exceptions import (NoCustomerAPIException,
-                                NoTicketAPIException,
-                                TicketNotAvailableAPIException,
-                                BookedMoreSeatAPIException,
-                                NotAValidUserAPIException,
-                                CancellationNotAllowedAPIException)
+from ebs_app.exceptions import (
+    NoCustomerAPIException,
+    NoTicketAPIException,
+    TicketNotAvailableAPIException,
+    BookedMoreSeatAPIException,
+    NotAValidUserAPIException,
+    CancellationNotAllowedAPIException,
+)
+
 
 class BookingViewSet(viewsets.ModelViewSet):
     """
@@ -117,9 +120,9 @@ class BookingViewSet(viewsets.ModelViewSet):
             raise NoCustomerAPIException()
 
         ticket_id = self.request.data.get("ticket")
-        ticket = Ticket.objects.get(
-            id=ticket_id
-            ) if "ticket" in self.request.data else None
+        ticket = (
+            Ticket.objects.get(id=ticket_id) if "ticket" in self.request.data else None
+        )
 
         count = self.request.data.get("count")
 
@@ -138,11 +141,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         if serializer.is_valid(raise_exception=True):
             ticket.save()
-            serializer.save(
-                customer=customer,
-                ticket=ticket,
-                status="BOOKED"
-            )
+            serializer.save(customer=customer, ticket=ticket, status="BOOKED")
         user_email = "test@email.com"
         send_booking_confirmation_email.delay(ticket_id, user_email)
         return super().perform_create(serializer)
@@ -160,14 +159,16 @@ class BookingViewSet(viewsets.ModelViewSet):
         Raises:
             NotAValidUserAPIException: If the user's role cannot be determined or is invalid.
         """
-        event_organiser = hasattr(self.request.user, 'eventorganiser')
-        customer = hasattr(self.request.user, 'customer')
+        event_organiser = hasattr(self.request.user, "eventorganiser")
+        customer = hasattr(self.request.user, "customer")
         if customer:
             customer = Customer.objects.get(user=self.request.user)
             return Booking.objects.filter(customer=customer)
         elif event_organiser:
             event_organiser = EventOrganiser.objects.get(user=self.request.user)
-            return Booking.objects.filter(ticket__event__event_organiser=event_organiser)
+            return Booking.objects.filter(
+                ticket__event__event_organiser=event_organiser
+            )
         else:
             raise NotAValidUserAPIException()
 
@@ -192,19 +193,20 @@ class CancelBooking(GenericAPIView):
     Returns:
         Response: A response indicating the success of the cancellation.
     """
+
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
     permission_classes = [permissions.IsAuthenticated, IsCustomer]
 
     def patch(self, request, pk):
-        user_is_customer = hasattr(self.request.user, 'customer')
+        user_is_customer = hasattr(self.request.user, "customer")
         if user_is_customer:
             customer = Customer.objects.get(user=self.request.user)
             booking = Booking.objects.get(id=pk)
             if booking.customer == customer:
                 count = booking.count
                 ticket = booking.ticket
-                new_availability = ticket.availability+count
+                new_availability = ticket.availability + count
                 booking.status = "CANCELLED"
                 booking.is_cancelled = True
                 booking.save()

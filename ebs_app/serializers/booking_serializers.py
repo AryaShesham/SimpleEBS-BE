@@ -14,6 +14,4 @@ class BookingSerializer(ModelSerializer):
 
     class Meta:
         model = Booking
-        fields = ["id", "customer",
-                  "ticket", "count",
-                  "status", "total_price"]
+        fields = ["id", "customer", "ticket", "count", "status", "total_price"]

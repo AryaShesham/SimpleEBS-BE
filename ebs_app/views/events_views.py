@@ -20,13 +20,13 @@ from copy import copy
 from rest_framework import viewsets, permissions
 from ebs_app.models.events import Event
 from ebs_app.models.bookings import Booking
-from users.customer.models import Customer
 from users.permissions import IsEventOrganiser
 from users.event_organiser.models import EventOrganiser
 from ebs_app.serializers.event_serializers import EventSerializer
 from ebs_app.tasks import send_event_update_email
 
 from ebs_app.exceptions import NotAuthorisedAPIException
+
 
 class EventViewSet(viewsets.ModelViewSet):
     """
@@ -46,14 +46,13 @@ class EventViewSet(viewsets.ModelViewSet):
     Methods:
     - perform_create(serializer): Custom method to create an event.
       Requires the user to be an authenticated Event Organizer.
-    
+
     - perform_update(serializer): Custom method to update an event.
       Sends email notifications to customers who have booked the event.
     """
 
     queryset = Event.objects.all()
     serializer_class = EventSerializer
-
 
     def get_permissions(self):
         """
@@ -84,10 +83,10 @@ class EventViewSet(viewsets.ModelViewSet):
             NotAuthorisedAPIException: If the user is not an authenticated Event Organizer.
         """
         event_organiser = EventOrganiser.objects.get(user=self.request.user)
-        
-        if event_organiser == None:
+
+        if event_organiser is None:
             raise NotAuthorisedAPIException()
-        
+
         if serializer.is_valid(raise_exception=True):
             serializer.save(
                 event_organiser=event_organiser,
@@ -104,18 +103,20 @@ class EventViewSet(viewsets.ModelViewSet):
             serializer: The serializer instance for the event.
         """
         event = self.get_object()
-        event_bookings = Booking.objects.filter(
-            ticket__event=event).values_list(
-                "customer__user__email").distinct()
+        event_bookings = (
+            Booking.objects.filter(ticket__event=event)
+            .values_list("customer__user__email")
+            .distinct()
+        )
         customer_email_list = [i[0] for i in event_bookings]
 
         serializer.save()
         serializer_copy = copy(serializer)
         updated_event = serializer_copy.data
         event_dict = {
-        "event_name": updated_event["event_name"],
-        "event_venue": updated_event["venue"],
-        "event_time": updated_event["event_date_time"],
+            "event_name": updated_event["event_name"],
+            "event_venue": updated_event["venue"],
+            "event_time": updated_event["event_date_time"],
         }
         send_event_update_email.delay(event_dict, customer_email_list)
         return super().perform_update(serializer)

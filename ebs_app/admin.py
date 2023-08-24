@@ -3,14 +3,17 @@ from ebs_app.models.events import Event
 from ebs_app.models.bookings import Booking
 from ebs_app.models.tickets import Ticket
 
+
 # Register your models here.
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     """
     Admin class for managing Event models.
 
-    This admin class allows managing Event objects in the Django admin interface.
-    It defines the list display fields to be shown in the admin list view.
+    This admin class allows managing Event objects
+    in the Django admin interface. It defines
+    the list display fields to be shown in
+    the admin list view.
 
     List Display Fields:
     - id: The primary key of the event.
@@ -27,8 +30,11 @@ class BookingAdmin(admin.ModelAdmin):
     """
     Admin class for managing Booking models.
 
-    This admin class allows managing Booking objects in the Django admin interface.
-    It defines the list display fields to be shown in the admin list view.
+    This admin class allows managing
+    Booking objects in the Django admin interface.
+
+    It defines the list display fields
+    to be shown in the admin list view.
 
     List Display Fields:
     - id: The primary key of the booking.
@@ -46,8 +52,11 @@ class TicketAdmin(admin.ModelAdmin):
     """
     Admin class for managing Ticket models.
 
-    This admin class allows managing Ticket objects in the Django admin interface.
-    It defines the list display fields to be shown in the admin list view.
+    This admin class allows managing
+    Ticket objects in the Django admin interface.
+
+    It defines the list display fields
+    to be shown in the admin list view.
 
     List Display Fields:
     - id: The primary key of the ticket.
