@@ -16,6 +16,11 @@ class NoCustomerAPIException(APIException):
     default_detail = "You are not a customer."
 
 
+class NoEventOrganiserAPIException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "You are not an event organiser."
+
+
 class NoTicketAPIException(APIException):
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "You have not provided a valid ticket."
