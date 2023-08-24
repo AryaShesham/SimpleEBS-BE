@@ -1,3 +1,7 @@
+"""
+Booking Serializer
+"""
+
 from rest_framework.serializers import ModelSerializer
 from ebs_app.models.bookings import Booking
 from users.customer.serializers import CustomerSerializers
@@ -10,6 +14,4 @@ class BookingSerializer(ModelSerializer):
 
     class Meta:
         model = Booking
-        fields = ["id", "customer",
-                  "ticket", "count",
-                  "status", "total_price"]
+        fields = ["id", "customer", "ticket", "count", "status", "total_price"]

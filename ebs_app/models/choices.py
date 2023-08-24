@@ -1,3 +1,6 @@
+"""
+Collection of all the choices used under ebs_app
+"""
 from django.db import models
 
 

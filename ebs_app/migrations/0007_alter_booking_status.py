@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("ebs_app", "0006_booking_is_cancelled_booking_status"),
     ]
