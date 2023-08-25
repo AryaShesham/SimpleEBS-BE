@@ -37,6 +37,7 @@ from ebs_app.exceptions import (
     BookedMoreSeatAPIException,
     NotAValidUserAPIException,
     CancellationNotAllowedAPIException,
+    ContentNotFoundAPIException,
 )
 
 
@@ -189,6 +190,7 @@ class CancelBooking(GenericAPIView):
     Raises:
         CancellationNotAllowedAPIException: If the current user is not the owner of the booking.
         NoCustomerAPIException: If the current user is not identified as a customer.
+        ContentNotFoundAPIException: If the specified booking does not exist.
 
     Returns:
         Response: A response indicating the success of the cancellation.
@@ -202,18 +204,21 @@ class CancelBooking(GenericAPIView):
         user_is_customer = hasattr(self.request.user, "customer")
         if user_is_customer:
             customer = Customer.objects.get(user=self.request.user)
-            booking = Booking.objects.get(id=pk)
-            if booking.customer == customer:
-                count = booking.count
-                ticket = booking.ticket
-                new_availability = ticket.availability + count
-                booking.status = "CANCELLED"
-                booking.is_cancelled = True
-                booking.save()
-                ticket.availability = new_availability
-                ticket.save()
-            else:
-                raise CancellationNotAllowedAPIException()
+            try:
+                booking = Booking.objects.get(id=pk)
+                if booking.customer == customer:
+                    count = booking.count
+                    ticket = booking.ticket
+                    new_availability = ticket.availability + count
+                    booking.status = "CANCELLED"
+                    booking.is_cancelled = True
+                    booking.save()
+                    ticket.availability = new_availability
+                    ticket.save()
+                else:
+                    raise CancellationNotAllowedAPIException()
+            except Booking.DoesNotExist:
+                raise ContentNotFoundAPIException()
         else:
             raise NoCustomerAPIException()
         return Response({"status": "Cancelled Successfully"})

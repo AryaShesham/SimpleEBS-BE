@@ -8,6 +8,7 @@ The Event Booking System (EBS) is a Dockerized Django-based web application that
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
+- [Running Tests](#running-tests)
 - [Superuser Access](#superuser-access)
 
 ## Features
@@ -37,6 +38,16 @@ The Event Booking System (EBS) is a Dockerized Django-based web application that
 2. Build and start the Docker containers: `docker-compose up --build -d`.
 
 Visit `http://localhost:8000` in your web browser to access the Dockerized application.
+
+## Running Tests
+
+To ensure the quality and reliability of the Event Booking System (EBS) project, test cases are included to test all the business logic for ticket booking process. Follow the steps below to run the test cases using pytest:
+
+1. Enable your virtual environment and install all the dependencies
+
+2. Navigate to project root directory.
+
+3. To run all the test cases run `pytest` in the project root directory.
 
 ## Superuser Access
 

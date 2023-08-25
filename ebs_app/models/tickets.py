@@ -33,15 +33,13 @@ class Ticket(models.Model):
     print(ticket)  # Output: "GENERAL_ADMISSION - Friday Party"
     """
 
-    event = models.ForeignKey(Event, on_delete=models.CASCADE,
-                              null=False, blank=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, null=False, blank=False)
     ticket_type = models.CharField(
         max_length=51,
         choices=TicketChoices.choices,
         default=TicketChoices.GENERAL_ADMISSION,
     )
-    total_allotment = models.IntegerField(default=100,
-                                          null=False, blank=False)
+    total_allotment = models.IntegerField(default=100, null=False, blank=False)
     availability = models.IntegerField(default=0, null=False, blank=False)
     price = models.IntegerField(default=0, null=False, blank=False)
 
