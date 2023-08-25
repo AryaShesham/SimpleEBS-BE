@@ -9,6 +9,7 @@ The Event Booking System (EBS) is a Dockerized Django-based web application that
 - [Installation](#installation)
 - [Usage](#usage)
 - [Running Tests](#running-tests)
+- [API Documentation](#api-documentation)
 - [Superuser Access](#superuser-access)
 
 ## Features
@@ -48,6 +49,18 @@ To ensure the quality and reliability of the Event Booking System (EBS) project,
 2. Navigate to project root directory.
 
 3. To run all the test cases run `pytest` in the project root directory.
+
+## API Documentation
+
+You can access the API documentation using the following Swagger endpoints:
+
+- JSON format: `/swagger.json`
+- YAML format: `/swagger.yaml`
+- Swagger UI: `/swagger/`
+- ReDoc: `/redoc/`
+
+Visit these endpoints in your web browser to view and interact with the API documentation.
+
 
 ## Superuser Access
 
