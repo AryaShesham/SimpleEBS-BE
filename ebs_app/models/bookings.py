@@ -7,6 +7,18 @@ from ebs_app.models.tickets import Ticket
 from ebs_app.models.choices import BookingStatus
 
 
+
+class SubBooking(models.Model):
+    ticket = models.ForeignKey(
+        Ticket, null=False, blank=False, on_delete=models.CASCADE
+    )
+    count = models.IntegerField(default=0, null=False, blank=False)
+
+    def __str__(self):
+        return f"{self.ticket.id} - {self.count}"
+
+
+
 class Booking(models.Model):
     """
     Booking Model:
@@ -41,30 +53,28 @@ class Booking(models.Model):
     customer = models.ForeignKey(
         Customer, null=False, blank=False, on_delete=models.CASCADE
     )
-    ticket = models.ForeignKey(
-        Ticket, null=False, blank=False, on_delete=models.CASCADE
-    )
-    count = models.IntegerField(default=0, null=False, blank=False)
+    sub_bookings = models.ManyToManyField(SubBooking, related_name="bookings")
     status = models.CharField(
         max_length=20,
         choices=BookingStatus.choices,
         default=BookingStatus.PENDING,
         blank=False,
     )
+    total_price = models.IntegerField(default=0)
     is_cancelled = models.BooleanField(default=False)
 
-    @property
-    def total_price(self):
-        """
-        Calculate the total price of the booking.
+    # @property
+    # def total_price(self):
+    #     """
+    #     Calculate the total price of the booking.
 
-        Returns:
-            int: The calculated total price of the booking.
-        """
-        ticket_price = self.ticket.price
-        count = self.count
-        total_price = ticket_price * count
-        return total_price
+    #     Returns:
+    #         int: The calculated total price of the booking.
+    #     """
+    #     ticket_price = self.ticket.price
+    #     count = self.count
+    #     total_price = ticket_price * count
+    #     return total_price
 
     def __str__(self):
         return f"{self.id} - {self.customer.user.first_name}"

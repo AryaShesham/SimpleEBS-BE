@@ -19,25 +19,26 @@ Contents:
 
 Note: This module is part of the ebs_app package and should be imported accordingly.
 """
-
+from django.db import transaction
 from rest_framework import viewsets, permissions
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from ebs_app.models.bookings import Booking
 from ebs_app.models.tickets import Ticket
 from users.customer.models import Customer
-from users.event_organiser.models import EventOrganiser
 from users.permissions import IsCustomer
-from ebs_app.serializers.booking_serializers import BookingSerializer
+from ebs_app.serializers.booking_serializers import BookingSerializer, SubBookingSerializer
 from ebs_app.tasks import send_booking_confirmation_email
 from ebs_app.exceptions import (
     NoCustomerAPIException,
-    NoTicketAPIException,
     TicketNotAvailableAPIException,
     BookedMoreSeatAPIException,
     NotAValidUserAPIException,
     CancellationNotAllowedAPIException,
     ContentNotFoundAPIException,
+    InvalidSubBookingDataAPIException,
+    TicketNotFoundAPIException,
+    AlreadyCancelledAPIException
 )
 
 
@@ -86,6 +87,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
+
+    @transaction.atomic
     def perform_create(self, serializer):
         """
         Custom method for creating a booking through the API.
@@ -120,32 +123,57 @@ class BookingViewSet(viewsets.ModelViewSet):
         if customer is None:
             raise NoCustomerAPIException()
 
-        ticket_id = self.request.data.get("ticket")
-        ticket = (
-            Ticket.objects.get(id=ticket_id) if "ticket" in self.request.data else None
-        )
+        sub_bookings = self.request.data.get("sub_bookings")
 
-        count = self.request.data.get("count")
+        if not isinstance(sub_bookings, list):
+            raise InvalidSubBookingDataAPIException()
 
-        if ticket is None:
-            raise NoTicketAPIException()
+        validated_sub_bookings = []
+        for sub_booking in sub_bookings:
+            ticket_id = sub_booking.get("ticket")
+            count = sub_booking.get("count")
 
-        ticket_current_count = ticket.availability
-        if ticket_current_count == 0:
-            raise TicketNotAvailableAPIException()
+            if not ticket_id or count is None or count <= 0:
+                raise InvalidSubBookingDataAPIException()
 
-        if count > ticket_current_count:
-            raise BookedMoreSeatAPIException()
+            # select_for_update() should be used with the database which must support transactions and locks.
+            ticket = Ticket.objects.select_for_update().filter(id=ticket_id).first()
+            
+            if not ticket:
+                raise TicketNotFoundAPIException()
 
-        available_tickets = ticket_current_count - count
-        ticket.availability = available_tickets
+            validated_sub_bookings.append({'ticket': ticket, 'count': count})
+
+        for sub_booking in validated_sub_bookings:
+            ticket = sub_booking['ticket']
+            count = sub_booking['count']
+
+            ticket_current_count = ticket.availability
+
+            if ticket_current_count == 0:
+                raise TicketNotAvailableAPIException()
+
+            if count > ticket_current_count:
+                raise BookedMoreSeatAPIException()
+
+            available_tickets = ticket_current_count - count
+            ticket.availability = available_tickets
+            ticket.save()
+
+        sub_booking_serializer = SubBookingSerializer(data=sub_bookings, many=True)
+        sub_booking_serializer.is_valid(raise_exception=True)
+        saved_sub_bookings = sub_booking_serializer.save()
+        sub_booking_id_list = [i.id for i in saved_sub_bookings]
+        price_list = [i.ticket.price*i.count for i in saved_sub_bookings]
 
         if serializer.is_valid(raise_exception=True):
-            ticket.save()
-            serializer.save(customer=customer, ticket=ticket, status="BOOKED")
+            booking = serializer.save(customer=customer, status="BOOKED", total_price=sum(price_list))
+            booking.sub_bookings.set(sub_booking_id_list)
+
         user_email = "test@email.com"
         send_booking_confirmation_email.delay(ticket_id, user_email)
         return super().perform_create(serializer)
+
 
     def get_queryset(self):
         """
@@ -166,10 +194,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             customer = Customer.objects.get(user=self.request.user)
             return Booking.objects.filter(customer=customer)
         elif event_organiser:
-            event_organiser = EventOrganiser.objects.get(user=self.request.user)
-            return Booking.objects.filter(
-                ticket__event__event_organiser=event_organiser
-            )
+            # event_organiser = EventOrganiser.objects.get(user=self.request.user)
+            return Booking.objects.all()
         else:
             raise NotAValidUserAPIException()
 
@@ -207,14 +233,18 @@ class CancelBooking(GenericAPIView):
             try:
                 booking = Booking.objects.get(id=pk)
                 if booking.customer == customer:
-                    count = booking.count
-                    ticket = booking.ticket
-                    new_availability = ticket.availability + count
+                    if booking.status == "CANCELLED":
+                        raise AlreadyCancelledAPIException()
+                    sub_bookings = booking.sub_bookings.all()
+                    for i in sub_bookings:
+                        count = i.count
+                        ticket = i.ticket
+                        new_availability = ticket.availability + count
+                        ticket.availability = new_availability
+                        ticket.save()
                     booking.status = "CANCELLED"
                     booking.is_cancelled = True
                     booking.save()
-                    ticket.availability = new_availability
-                    ticket.save()
                 else:
                     raise CancellationNotAllowedAPIException()
             except Booking.DoesNotExist:

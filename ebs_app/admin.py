@@ -44,7 +44,7 @@ class BookingAdmin(admin.ModelAdmin):
     - status: The booking status.
     """
 
-    list_display = ["id", "customer", "ticket", "count", "status"]
+    list_display = ["id", "customer", "status"]
 
 
 @admin.register(Ticket)

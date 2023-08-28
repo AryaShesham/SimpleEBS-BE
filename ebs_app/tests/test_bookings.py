@@ -27,6 +27,14 @@ class BookingViewSetTestCase(APITestCase):
 
         self.customer = CustomerFactory(user=self.customer_user)
 
+        self.alt_customer_user = User.objects.create_user(
+            username="testuser_alt",
+            password="testpassword",
+            email="test_alt@email.com",
+        )
+    
+        self.alt_customer = CustomerFactory(user=self.alt_customer_user)
+
         self.event_organiser_user = User.objects.create_user(
             username="testuser_event",
             password="testpassword",
@@ -59,10 +67,26 @@ class BookingViewSetTestCase(APITestCase):
             price=149,
         )
 
+        self.limited_ticket_available = Ticket.objects.create(
+            event=self.event,
+            ticket_type="PREMIUM",
+            total_allotment=150,
+            availability=1,
+            price=149,
+        )
+        
+        
+
         self.valid_payload = {
             "ticket": self.ticket.id,
             "count": 2,
         }
+
+        self.limited_seat_payload = {
+            "ticket": self.limited_ticket_available.id,
+            "count": 1,
+        }
+
         self.client.force_authenticate(user=self.customer_user)
 
     def mock_send_booking_confirmation_email(self, ticket_id, user_email):
